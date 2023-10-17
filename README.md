@@ -1,2 +1,0 @@
-# LED-Ticker-img-converter
- 
