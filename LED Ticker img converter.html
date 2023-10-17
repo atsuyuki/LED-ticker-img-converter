@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: rgb(53, 53, 53);
+            color: whitesmoke;
+        }
+
+        a {
+            color: whitesmoke;
+        }
+
+        #test_canvas {
+            background-color: white;
+        }
+
+        #output {
+            zoom: 40%;
+            line-height: 0.8em;
+            letter-spacing: -0.2em;
+            font-size: 1em;
+            white-space: nowrap;
+            color: rgb(255, 35, 35);
+            text-shadow: 0 0 1em #ff0000;
+            /*
+            color: rgb(46, 200, 32);
+            text-shadow: 0 0 1em #00ff2f;
+            */
+        }
+    </style>
+    <title></title>
+</head>
+
+<body>
+    <script>
+        const onFileSelected = (input) => {
+            let file = input.files[0];
+            console.log(file)
+            let reader = new FileReader();
+            reader.onload = onFileLoaded;
+            reader.readAsDataURL(file);
+        }
+
+        const onFileLoaded = (e) => {
+            let src_data = e.target.result;
+            let img = new Image();
+            img.onload = onImageSetted;
+            img.src = src_data;
+        }
+
+        const sliceByNumber = (array, number) => {
+            const length = Math.ceil(array.length / number);
+            return new Array(length)
+                .fill()
+                .map((_, i) => array.slice(i * number, (i + 1) * number));
+        };
+
+        const onImageSetted = (e) => {
+//            let canvas = document.getElementById('test_canvas')
+            let img = e.target;
+
+            //let cv = document.createElement('canvas');
+            let cv = document.getElementById('test_canvas')
+            cv.width = img.naturalWidth;
+            cv.height = img.naturalHeight;
+
+            let context = cv.getContext('2d');
+            context.drawImage(img, 0, 0);
+            let data = context.getImageData(0, 0, cv.width, cv.height);
+            //            let data = context.getImageData(0, 0, 64, 16);
+            console.log(data.height, data.width)
+            console.log(data)
+
+            let mono = []
+            for (let i = 0; i < data.data.length; i += 4) {
+                //mono[i / 4] = Number((data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3 < 128)
+                //console.log(((data.data[i + 3])))
+                //                mono[i / 4] = Number((data.data[i] > 1 || data.data[i + 1] > 1 || data.data[i + 2] > 1 || data.data[i + 3] > 1))
+                mono[i / 4] = Number(!(data.data[i] > 1 || data.data[i + 1] > 1 || data.data[i + 2] > 1) && data.data[i + 3] > 1)
+            }
+
+            mono_img = sliceByNumber(mono.join(''), data.width)
+
+            console.log(mono_img)
+            h = data.height
+            c = h / 8
+            let resize_img = []
+            for (let i = 0; i < h; i++) {
+                if (i % c == Math.floor(c / 2)) {
+                    let row = ''
+                    for (let j = 0; j < data.width; j++) {
+                        if (j % c == Math.floor(c / 2)) {
+                            row += mono_img[i][j]
+                        }
+                    }
+                    resize_img.push(row)
+                }
+            }
+            mono_img = resize_img
+
+            document.getElementById('output').innerHTML = mono_img.join('<br>').replace(/0/g, '　').replace(/1/g, '●')
+            document.getElementById('code').innerHTML = mono_img.join('\n')
+
+            let filename = document.getElementById('file_input').files[0].name.split('.')[0]
+            let text = mono_img.join('\n')
+            const blob = new Blob([text], { type: 'text/plain' })
+            const url = URL.createObjectURL(blob)
+            const anchor = document.getElementById('a')
+            anchor.setAttribute('href', url)
+            anchor.setAttribute('download', `${filename}.txt`)
+
+
+        }
+
+    </script>
+    <h1>LED Ticker img converter</h1>
+    <ul>
+        <li>This is a tool for converting image data for LED tickers.</li>
+        <li>Maximum supported image aspect(width) is 256(W):8(H).</li>
+    </ul>
+    <h2>How to use</h2>
+    <ol>
+        <li>Press file seledt button and select image file.</li>
+        <li>Check the preview.</li>
+        <li>Press download button then text file will download.</li>
+        <li>Copy text to LED-Ticker's "img" directory.</li>
+    </ol>
+    <hr>
+    <p>
+        <input id="file_input" type="file" onchange="onFileSelected(this)"
+            onclick="document.getElementById('file_input').value = ''">
+    </p>
+    <div id="">
+        <canvas id="test_canvas" height="10"></canvas>
+        <br><br>
+        <p id="output"></p>
+        <br>
+        <pre id="code"></pre>
+        <a id="a"><button> DOWNLOAD </button></a>
+    </div>
+    <br>
+    <div>
+        <p>If this tool helps your project, please share it with me by tagging <a
+                href="https://twitter.com/aaa_tu">@aaa_tu</a> or <a
+                href="https://www.creativity-ape.com/">creativity-ape.com</a>.
+        </p>
+    </div>
+
+
+
+</body>
+
+</html>
