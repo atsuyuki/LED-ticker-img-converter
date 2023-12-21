@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: rgb(53, 53, 53);
+            color: whitesmoke;
+        }
+
+        a {
+            color: whitesmoke;
+        }
+
+        #test_canvas {
+            background-color: white;
+        }
+
+        #output {
+            zoom: 40%;
+            line-height: 0.8em;
+            letter-spacing: -0.2em;
+            font-size: 1em;
+            white-space: nowrap;
+            color: rgb(255, 35, 35);
+            text-shadow: 0 0 1em #ff0000;
+            /*
+            color: rgb(46, 200, 32);
+            text-shadow: 0 0 1em #00ff2f;
+            */
+        }
+
+        #code {
+            font-size: xx-small;
+        }
+    </style>
+    <title></title>
+</head>
+
+<body>
+    <script>
+        const onFileSelected = (input) => {
+            const file = input.files[0];
+            console.log(file);
+            readAsDataURL(file, onFileLoaded);
+        };
+
+        const readAsDataURL = (file, callback) => {
+            const reader = new FileReader();
+            reader.onload = callback;
+            reader.readAsDataURL(file);
+        };
+
+        const onFileLoaded = (e) => {
+            const imageDataUrl = e.target.result;
+            loadImage(imageDataUrl, onImageSetted);
+        };
+
+        const loadImage = (src, callback) => {
+            const img = new Image();
+            img.onload = callback;
+            img.src = src;
+        };
+
+        const sliceArrayIntoChunks = (array, chunkSize) => {
+            const numberOfChunks = Math.ceil(array.length / chunkSize);
+            return Array(numberOfChunks)
+                .fill()
+                .map((_, i) => array.slice(i * chunkSize, (i + 1) * chunkSize));
+        };
+
+        const onImageSetted = (e) => {
+            const img = e.target;
+            const canvas = document.getElementById('test_canvas');
+            setCanvasSize(canvas, img.naturalWidth, img.naturalHeight);
+            const context = canvas.getContext('2d');
+            drawImageOnContext(context, img);
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            console.log(imageData.height, imageData.width);
+            console.log(imageData);
+            const monoImageData = convertToMonoImageData(imageData);
+            const slicedMonoImageData = sliceArrayIntoChunks(monoImageData.join(''), imageData.width);
+            console.log(slicedMonoImageData);
+            const resizedMonoImageData = resizeMonoImageData(slicedMonoImageData, imageData.width, imageData.height);
+            displayMonoImageData(resizedMonoImageData);
+            downloadMonoImageData(resizedMonoImageData);
+        };
+
+        const setCanvasSize = (canvas, width, height) => {
+            canvas.width = width;
+            canvas.height = height;
+        };
+
+        const drawImageOnContext = (context, img) => {
+            context.drawImage(img, 0, 0);
+        };
+
+        const convertToMonoImageData = (imageData) => {
+            const mono = [];
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                mono[i / 4] = Number(!(imageData.data[i] > 1 || imageData.data[i + 1] > 1 || imageData.data[i + 2] > 1) && imageData.data[i + 3] > 1);
+            }
+            return mono;
+        };
+
+        const resizeMonoImageData = (monoImageData, width, height) => {
+            const chunkSize = height / 8;
+            let resizedMonoImageData = [];
+            for (let i = 0; i < height; i++) {
+                if (i % chunkSize === Math.floor(chunkSize / 2)) {
+                    let row = '';
+                    for (let j = 0; j < width; j++) {
+                        if (j % chunkSize === Math.floor(chunkSize / 2)) {
+                            row += monoImageData[i][j];
+                        }
+                    }
+                    resizedMonoImageData.push(row);
+                }
+            }
+            return resizedMonoImageData;
+        };
+
+        const displayMonoImageData = (monoImageData) => {
+            document.getElementById('output').innerHTML = monoImageData.join('<br>').replace(/0/g, '　').replace(/1/g, '●');
+            document.getElementById('code').innerHTML = monoImageData.join('\\r\\n' + '\n');
+        };
+
+        const downloadMonoImageData = (monoImageData) => {
+            const filename = document.getElementById('file_input').files[0].name.split('.')[0];
+            const text = monoImageData.join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.getElementById('a');
+            anchor.setAttribute('href', url);
+            anchor.setAttribute('download', `${filename}.txt`);
+        };
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const uploadButton = document.getElementById('upload');
+            const connectButton = document.getElementById('connect');
+            const sendButton = document.getElementById('send');
+            const output = document.getElementById('serial_output');
+            const status = document.getElementById('status');
+            //const txtData = document.getElementById('txt_data');
+            const txtData = document.getElementById('code');
+            let port;
+
+            uploadButton.addEventListener('click', upload);
+            connectButton.addEventListener('click', connect);
+            sendButton.addEventListener('click', send);
+
+            async function upload() {
+                await connect()
+                await send()
+            }
+
+            async function connect() {
+                if ('serial' in navigator) {
+                    try {
+                        port = await navigator.serial.requestPort();
+                        await port.open({ baudRate: 115200 });
+                        await sendNewLine();
+
+                        status.textContent = 'Connected';
+                        sendButton.disabled = false;
+                        readLoop();
+                    } catch (error) {
+                        updateStatus('Connection error: ', error);
+                    }
+                } else {
+                    updateStatus('Web Serial API not supported.');
+                }
+            }
+
+            async function sendNewLine() {
+                const writer = port.writable.getWriter();
+                const newLine = new TextEncoder().encode("\r\n");
+                await writer.write(newLine);
+                writer.releaseLock();
+            }
+
+            async function send() {
+                if (port && port.writable) {
+                    const writer = port.writable.getWriter();
+                    //const filename = document.getElementById('file_input').files[0].name.split('.')[0];
+                    //let file = `img/${filename}.txt`
+                    let file = `img/0000.txt`
+                    let content = document.getElementById('code').textContent
+                    console.log(content)
+                    let msg = String.raw`with open('${file}', 'w') as f: f.write('${content}')` + "\r\n" + "\r\n";
+                    msg = [
+                        String.raw`with open('${file}', 'w') as f: f.write('${content}')`,
+                        String.raw`with open('${file}', 'r') as f: f.read()`
+                    ].join("\r\n" + "\r\n")
+                    let msg2 = String.raw`with open('${file}', 'r') as f: f.read()`;
+                    let command = msg + "\r\n" + "\r\n"
+                    const data = new TextEncoder().encode(command);
+                    await writer.write(data);
+                    writer.releaseLock();
+                    status.textContent = 'Message sent';
+                } else {
+                    updateStatus('Port is not connected or not writable.');
+                }
+            }
+
+            async function readLoop() {
+                while (port && port.readable) {
+                    const reader = port.readable.getReader();
+                    try {
+                        while (true) {
+                            const { value, done } = await reader.read();
+                            if (done) {
+                                break;
+                            }
+                            output.textContent += new TextDecoder().decode(value);
+                        }
+                    } catch (error) {
+                        updateStatus('Read error: ', error);
+                    } finally {
+                        reader.releaseLock();
+                    }
+                }
+            }
+
+            function updateStatus(message, error = '') {
+                console.error(message + error);
+                status.textContent = message + error;
+            }
+        });
+    </script>
+
+
+    <h1>LED Ticker img converter & uploader (beta)</h1>
+    <ul>
+        <li>This is a tool of image data converter and uploader for LED tickers.</li>
+        <li>Supported image aspect is 1～256(W):8(H). ex.1280x80px</li>
+    </ul>
+    <h2>How to use?</h2>
+    <ol>
+        <li>Press file select button and select image file and check the preview.</li>
+        <li>Press RST button on controller.</li>
+        <li>Press "Upload" button then port selct window will open.</li>
+        <li>Press RST button on controller again, ticker will show the image.</li>
+    </ol>
+    <hr>
+    <p>
+        <input id="file_input" type="file" accept="image/*" onchange="onFileSelected(this)"
+            onclick="document.getElementById('file_input').value = ''">
+    </p>
+    <div id="">
+        <canvas id="test_canvas" height="10"></canvas>
+        <br><br>
+        <p id="output"></p>
+        <br>
+        <pre id="code"></pre>
+        <a id="a" style="display: none;"><button>Download</button></a>
+        <button id="upload">Upload</button>
+        <button id="connect" style="display: none;">Connect</button>
+        <button id="send" disabled style="display: none;">Send</button>
+        <p id="status">Not connected</p>
+        <pre id="serial_output" style="font-size: xx-small;"></pre>
+        <textarea id="txt_data" style="display:none;">one\ntwo</textarea>
+    </div>
+    <hr>
+    <div>
+        <p>If this tool helps your project, please share it with me by tagging <a
+                href="https://twitter.com/aaa_tu">@aaa_tu</a> or <a
+                href="https://www.creativity-ape.com/">creativity-ape.com</a>.
+        </p>
+    </div>
+
+
+
+</body>
+
+</html>
