@@ -16,7 +16,7 @@
             background-color: white;
         }
 
-        #output {
+        #output_image {
             zoom: 40%;
             line-height: 0.8em;
             letter-spacing: -0.2em;
@@ -121,7 +121,7 @@
         };
 
         const displayMonoImageData = (monoImageData) => {
-            document.getElementById('output').innerHTML = monoImageData.join('<br>').replace(/0/g, '　').replace(/1/g, '●');
+            document.getElementById('output_image').innerHTML = monoImageData.join('<br>').replace(/0/g, '　').replace(/1/g, '●');
             document.getElementById('code').innerHTML = monoImageData.join('\\r\\n' + '\n');
         };
 
@@ -250,7 +250,7 @@
     <div id="">
         <canvas id="test_canvas" height="10"></canvas>
         <br><br>
-        <p id="output"></p>
+        <p id="output_image"></p>
         <br>
         <pre id="code"></pre>
         <a id="a" style="display: none;"><button>Download</button></a>
