@@ -184,13 +184,15 @@
                     const writer = port.writable.getWriter();
                     //const filename = document.getElementById('file_input').files[0].name.split('.')[0];
                     //let file = `img/${filename}.txt`
-                    let file = `img/0000.txt`
+                    let file = `imgs/0000.txt`
                     let content = document.getElementById('code').textContent
                     console.log(content)
                     let msg = String.raw`with open('${file}', 'w') as f: f.write('${content}')` + "\r\n" + "\r\n";
                     msg = [
                         String.raw`with open('${file}', 'w') as f: f.write('${content}')`,
-                        String.raw`with open('${file}', 'r') as f: f.read()`
+                        String.raw`with open('${file}', 'r') as f: f.read()`,
+                        String.raw`import machine`,
+                        String.raw`machine.reset()`,
                     ].join("\r\n" + "\r\n")
                     let msg2 = String.raw`with open('${file}', 'r') as f: f.read()`;
                     let command = msg + "\r\n" + "\r\n"
