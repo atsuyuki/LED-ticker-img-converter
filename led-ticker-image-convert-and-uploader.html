@@ -2,6 +2,9 @@
 <html>
 
 <head>
+    <!-- Minified version 
+    -->
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
     <style>
         body {
             background-color: rgb(53, 53, 53);
@@ -17,13 +20,14 @@
         }
 
         #output_image {
-            zoom: 40%;
-            line-height: 0.8em;
-            letter-spacing: -0.2em;
-            font-size: 1em;
-            white-space: nowrap;
-            color: rgb(255, 35, 35);
-            text-shadow: 0 0 1em #ff0000;
+            font-family: monospace !important;
+            zoom: 40% !important;
+            line-height: 0.8em !important;
+            letter-spacing: -0.2em !important;
+            font-size: 1em !important;
+            white-space: nowrap !important;
+            color: rgb(255, 35, 35) !important;
+            text-shadow: 0 0 1em #ff0000 !important;
             /*
             color: rgb(46, 200, 32);
             text-shadow: 0 0 1em #00ff2f;
@@ -234,16 +238,17 @@
 
     <h1>LED Ticker img converter & uploader (beta)</h1>
     <ul>
-        <li>This is a tool of image data converter and uploader for LED tickers.</li>
-        <li>Supported image aspect is 1～256(W):8(H). ex.1280x80px</li>
+        <li>これはLEDティッカーのための画像変換＆アップローダーツールです。</li>
+        <li>画像はアスペクトが幅1～256：高さ8になるようにしてください。 例　1280x80px</li>
+        <li>Webで表示できる画像形式全般が使えます。</li>
     </ul>
-    <h2>How to use?</h2>
+    <h2>使いかた</h2>
     <ol>
-        <li>Press file select button and select image file and check the preview.</li>
-        <li>Press RST button on controller.</li>
-        <li>Press "Upload" button then port selct window will open.</li>
-        <li>Press RST button on controller again, ticker will show the image.</li>
+        <li>「ファイルを選択」ボタンから画像ファイルを選択して、プレビューがイメージ通りになっていることを確認してください。</li>
+        <li>USBを繋いで、コントローラーの「NEXT」と「BACK」ボタンを同時に一秒間押してください。LEDに「STOP」と表示されるはずです。</li>
+        <li>「アップロード」ボタンを押して、コントローラーを繋いだポート※を選択してください。完了すると新しい画像が表示されます。</li>
     </ol>
+    <small>※ ポートがわからない場合は、USBを抜き差ししたときに表示されたり消えたりするポートです。</small>
     <hr>
     <p>
         <input id="file_input" type="file" accept="image/*" onchange="onFileSelected(this)"
@@ -256,7 +261,7 @@
         <br>
         <pre id="code"></pre>
         <a id="a" style="display: none;"><button>Download</button></a>
-        <button id="upload">Upload</button>
+        <button id="upload">アップロード</button>
         <button id="connect" style="display: none;">Connect</button>
         <button id="send" disabled style="display: none;">Send</button>
         <p id="status">Not connected</p>
@@ -265,9 +270,13 @@
     </div>
     <hr>
     <div>
-        <p>If this tool helps your project, please share it with me by tagging <a
-                href="https://twitter.com/aaa_tu">@aaa_tu</a> or <a
-                href="https://www.creativity-ape.com/">creativity-ape.com</a>.
+        <p>もしこのツールがあなたのプロジェクトに役立ったら、次のどれかをタグ付け・クレジットしてシェアしていただけると嬉しいです！
+        <ul>
+            <li> X <a href="https://twitter.com/aaa_tu/">@aaa_tu</a></li>
+            <li> instagram <a href="https://www.instagram.com/aaa_tu/">@aaa_tu</a></li>
+            <li>web <a href="https://www.creativity-ape.com/">www.creativity-ape.com</a></li>
+        </ul>
+
         </p>
     </div>
 
