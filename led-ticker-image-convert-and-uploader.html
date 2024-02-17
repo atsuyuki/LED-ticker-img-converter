@@ -26,12 +26,21 @@
             letter-spacing: -0.2em !important;
             font-size: 1em !important;
             white-space: nowrap !important;
+            /*
             color: rgb(255, 35, 35) !important;
             text-shadow: 0 0 1em #ff0000 !important;
-            /*
             color: rgb(46, 200, 32);
             text-shadow: 0 0 1em #00ff2f;
             */
+        }
+
+        .ON {
+            color: rgb(255, 35, 35) !important;
+            text-shadow: 0 0 1em #ff0000 !important;
+        }
+
+        .OFF {
+            color: rgba(255, 35, 35, 0) !important;
         }
 
         #code {
@@ -125,7 +134,7 @@
         };
 
         const displayMonoImageData = (monoImageData) => {
-            document.getElementById('output_image').innerHTML = monoImageData.join('<br>').replace(/0/g, '　').replace(/1/g, '●');
+            document.getElementById('output_image').innerHTML = monoImageData.join('<br>').replace(/0/g, '<span class="OFF">●</span>').replace(/1/g, '<span class="ON">●</span>');
             document.getElementById('code').innerHTML = monoImageData.join('\\r\\n' + '\n');
         };
 
@@ -245,8 +254,8 @@
     <h2>使いかた</h2>
     <ol>
         <li>「ファイルを選択」ボタンから画像ファイルを選択して、プレビューがイメージ通りになっていることを確認してください。</li>
-        <li>USBを繋いで、コントローラーの「NEXT」と「BACK」ボタンを同時に一秒間押してください。LEDに「STOP」と表示されるはずです。</li>
-        <li>「アップロード」ボタンを押して、コントローラーを繋いだポート※を選択してください。完了すると新しい画像が表示されます。</li>
+        <li>USBを繋いで、コントローラーの「NEXT」と「BACK」ボタンを同時に1秒程度長押し押してください。LEDに「STOP」と表示されるはずです。</li>
+        <li>「アップロード」ボタンを押して、コントローラーを繋いだポート<sup>※</sup>を選択してください。完了すると新しい画像が表示されます。</li>
     </ol>
     <small>※ ポートがわからない場合は、USBを抜き差ししたときに表示されたり消えたりするポートです。</small>
     <hr>
