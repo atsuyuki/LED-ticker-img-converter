@@ -119,7 +119,7 @@
         };
 
         const resizeMonoImageData = (monoImageData, width, height) => {
-            const chunkSize = height / 8;
+            const chunkSize = Math.round(height / 8);
             let resizedMonoImageData = [];
             for (let i = 0; i < height; i++) {
                 if (i % chunkSize === Math.floor(chunkSize / 2)) {
