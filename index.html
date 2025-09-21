@@ -25,6 +25,10 @@
     pre#code{ background:#0b0f16; border:1px solid var(--border); border-radius:10px; padding:.6rem .8rem; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10px; line-height:1.2; max-height:160px; overflow:auto; color:#dfe4ee; margin:8px 0 0; }
     #log{ background:#0b0f16; color:#a7ffb2; padding:.6rem .8rem; height:140px; overflow:auto; border:1px solid var(--border); border-radius:10px; }
     .kbd{ font-family: ui-monospace,Menlo,monospace; background:#0d1119; border:1px solid var(--border); padding:2px 6px; border-radius:6px; color:#cbd5e1; }
+    /* Step1 サンプル表示 */
+    figure.sample{ margin:8px 0 0; }
+    figure.sample img{ display:block; width:70%; height:auto; cursor:pointer; }
+    figure.sample .hint{ margin-top:6px; }
     /* 画像プレビュー領域: 背景を白、文字基準の高さ(lh)で8行ぶん */
     #imagePreview {
       background:#ffffff;
@@ -60,6 +64,10 @@
         <li>横幅が長くなるとスクロールが遅くなります。</li>
     </ul>
 </div>
+<figure class="sample">
+  <figcaption class="hint">サンプル（クリックで読み込み）</figcaption>
+  <img class="base64-image" src="data:image/png;base64,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"/>
+</figure>
     </div>
 
     <!-- ステップ 2: 画像を開く（ファイル選択） -->
@@ -92,7 +100,7 @@
             <strong>「WAIT」表示</strong>にしてください。
         </div>
         <div class="row">
-            <button class="btn primary" id="btnSend" disabled>送信（Enter）</button>
+            <button class="btn primary" id="btnSend" disabled>デバイスに送信</button>
             <button class="btn" id="btnDownload" disabled>ダウンロード</button>
           </div>
         </div>
@@ -159,6 +167,24 @@ function handleImageFile(file) {
   };
   reader.readAsDataURL(file);
 }
+
+// サンプル画像（base64埋め込み）をクリックで読み込み・変換
+(() => {
+  const sample = document.querySelector('.base64-image');
+  if (!sample) return;
+  sample.style.cursor = 'pointer';
+  sample.title = 'クリックでサンプルを読み込み';
+  sample.addEventListener('click', () => {
+    const prev = $('previewImage');
+    prev.src = sample.src;
+    prev.style.display = 'block';
+    if (sample.complete) {
+      convertImage(sample, 'sample.png');
+    } else {
+      sample.addEventListener('load', () => convertImage(sample, 'sample.png'), { once: true });
+    }
+  });
+})();
 
 /* ---------- 画像→0/1（縦横比維持H=8） ---------- */
 function convertImage(img, origName){
@@ -246,7 +272,6 @@ async function readDeviceResponse(reader, timeoutMs=10000){
 }
 
 /* ---------- 送信（毎回 接続→応答→クローズ / 押下でテキストクリア） ---------- */
-document.addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.metaKey && !e.ctrlKey && !$('btnSend').disabled){ e.preventDefault(); sendNow(); } });
 $('btnSend').addEventListener('click', sendNow);
 // ダウンロード
 $('btnDownload').addEventListener('click', ()=>{
