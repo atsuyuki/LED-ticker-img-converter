@@ -84,32 +84,23 @@
         <div class="hint">点灯=1 / 消灯=0</div>
     </div>
 
-    <!-- ステップ 4: ファイル名を決める -->
+    <!-- ステップ 4: 送信 / ダウンロード -->
     <div class="card">
-        <h2>④ ファイル名を決める</h2>
-        <div class="row">
-            <input id="fname" type="text" placeholder="例: hello.txt" value="0000.txt" style="min-width:220px">
-            <span class="hint">不正な文字は自動で置換されます</span>
-        </div>
-    </div>
-
-    <!-- ステップ 5: 送信 -->
-    <div class="card">
-        <h2>⑤ 送信</h2>
+        <h2>④ 送信 / ダウンロード</h2>
         <div class="hint" style="margin:6px 0 10px;">
             ※ 送信前に、本体の <strong>NEXT</strong> と <strong>BACK</strong> を同時に押して
             <strong>「WAIT」表示</strong>にしてください。
         </div>
         <div class="row">
             <button class="btn primary" id="btnSend" disabled>送信（Enter）</button>
-            <button class="btn" id="btnReset">リセット</button>
-            <span class="status" id="status">Not connected</span>
+            <button class="btn" id="btnDownload" disabled>ダウンロード</button>
+          </div>
         </div>
-    </div>
-
-    <!-- ステップ 6: デバイス応答 -->
-    <div class="card">
-        <h2>デバイス応答</h2>
+        
+    <!-- ステップ 5: デバイス応答 -->
+        <div class="card">
+          <h2>デバイス応答</h2>
+          <span class="status" id="status">Not connected</span>
         <pre id="log"></pre>
     </div>
 </div>
@@ -121,6 +112,18 @@
 const $ = (id)=>document.getElementById(id);
 const setStatus = (s, cls='')=>{ const el=$('status'); el.textContent=s; el.className='status '+cls; };
 const log = (s)=>{ const el=$('log'); el.textContent += s; el.scrollTop = el.scrollHeight; };
+// 文字列をダウンロード保存
+function downloadTextFile(filename, text){
+  const blob = new Blob([text], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 // テキスト確認欄（pre#code）をデータ未設定時に8行の空行でプレースホルダー表示
 function setCodePlaceholder(){
@@ -195,11 +198,12 @@ function convertImage(img, origName){
   $('preview').innerHTML = rows.map(line => line.replace(/0/g,'<span class="OFF">●</span>').replace(/1/g,'<span class="ON">●</span>')).join('<br>');
 
   const stem = (origName||'').replace(/\.[^.]+$/, '') || '0000';
-  if(!$('fname').dataset.userEdited){ $('fname').value = `${stem}.txt`; }
+  // ダウンロード用の元名（不正文字置換＋.txt）を保持
+  window.lastDownloadName = sanitizeFilename(`${stem}.txt`);
 
   $('btnSend').disabled = false;
+  $('btnDownload').disabled = false;
 }
-$('fname').addEventListener('input', ()=>{ $('fname').dataset.userEdited='1'; });
 
 /* ---------- Utils ---------- */
 function base64FromBytes(bytes){ let bin=''; const CH=0x8000; for(let i=0;i<bytes.length;i+=CH) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); return btoa(bin); }
@@ -244,6 +248,16 @@ async function readDeviceResponse(reader, timeoutMs=10000){
 /* ---------- 送信（毎回 接続→応答→クローズ / 押下でテキストクリア） ---------- */
 document.addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.metaKey && !e.ctrlKey && !$('btnSend').disabled){ e.preventDefault(); sendNow(); } });
 $('btnSend').addEventListener('click', sendNow);
+// ダウンロード
+$('btnDownload').addEventListener('click', ()=>{
+  const content = $('content').value ?? '';
+  if(!content){
+    alert('ダウンロードできるデータがありません。画像を選んで変換してください。');
+    return;
+  }
+  const name = window.lastDownloadName || '0000.txt';
+  downloadTextFile(name, content);
+});
 
 async function sendNow() {
   const content = $('content').value ?? '';
@@ -257,7 +271,13 @@ async function sendNow() {
   setCodePlaceholder();
   $('preview').innerHTML = '';
   $('content').value = '';
+  // 画像プレビューもクリア
+  (function(){
+    const img = $('previewImage');
+    if (img){ img.src = ''; img.style.display = 'none'; }
+  })();
   $('btnSend').disabled = true;
+  $('btnDownload').disabled = true;
 
   let port = null,
     writer = null,
@@ -273,7 +293,7 @@ async function sendNow() {
     reader = port.readable.getReader();
     setStatus('Connected', 'ok');
 
-    const path = `imgs/${sanitizeFilename($('fname').value)}`;
+    const path = `imgs/0000.txt`;
     const bytes = new TextEncoder().encode(prevText);
     const size = bytes.length;
     const b64 = base64FromBytes(bytes);
@@ -328,11 +348,6 @@ async function sendNow() {
     setStatus('Port closed', '');
   }
 }
-
-// リセット：ページをリロードするだけ
-$('btnReset').addEventListener('click', () => {
-  location.reload();
-});
 
 // 初期表示時に空なら8行プレースホルダーを表示
 if(!$('code').textContent){ setCodePlaceholder(); }
