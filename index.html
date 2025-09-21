@@ -25,13 +25,46 @@
     pre#code{ background:#0b0f16; border:1px solid var(--border); border-radius:10px; padding:.6rem .8rem; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10px; line-height:1.2; max-height:160px; overflow:auto; color:#dfe4ee; margin:8px 0 0; }
     #log{ background:#0b0f16; color:#a7ffb2; padding:.6rem .8rem; height:140px; overflow:auto; border:1px solid var(--border); border-radius:10px; }
     .kbd{ font-family: ui-monospace,Menlo,monospace; background:#0d1119; border:1px solid var(--border); padding:2px 6px; border-radius:6px; color:#cbd5e1; }
+    /* 画像プレビュー領域: 背景を白、文字基準の高さ(lh)で8行ぶん */
+    #imagePreview {
+      background:#ffffff;
+      font-size: 8px;      /* #preview と揃える */
+      line-height: .7em;   /* #preview と揃える */
+      height: calc(8 * 1lh); /* 8行ぶんの高さ */
+      /* センタリングしない（通常のフロー配置） */
+    }
+    /* 画像は高さを枠いっぱい（8lh）に、幅はアスペクト維持で自動 */
+    #previewImage {
+      height: 100% !important;
+      width: auto !important;
+      max-height: none !important;
+      max-width: none !important;
+      display: block;
+      /* アンチエイリアスを無効化（最近傍表示） */
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
 </style>
 
 <div class="wrap">
     <h1>LED Ticker Uploader</h1>
 
+    <!-- ステップ 1: 画像を作成する -->
     <div class="card">
-        <h2>① 画像を選ぶ</h2>
+        <h2>① 画像を作成する</h2>
+<div class="hint">
+    LEDティッカーに表示したい画像をご用意ください（Webで使用できる形式なら何でもOK：JPG/PNG/GIF/WebP/SVG 等）。
+    <ul>
+        <li>色は白黒（黒の部分が光ります）</li>
+        <li>サイズと縦横比は自由ですが、推奨は縦8ドットのピクセルアートです。</li>
+        <li>横幅が長くなるとスクロールが遅くなります。</li>
+    </ul>
+</div>
+    </div>
+
+    <!-- ステップ 2: 画像を開く（ファイル選択） -->
+    <div class="card">
+        <h2>② 画像を開く（ファイル選択）</h2>
         <div class="drop" id="drop">
             ここに画像をドラッグ＆ドロップ<br><span class="hint">または</span><br>
             <button class="btn" id="pickBtn">画像を選択</button>
@@ -40,38 +73,41 @@
         </div>
     </div>
 
+    <!-- ステップ 3: プレビュー & テキスト確認 -->
     <div class="card">
-        <h2>② プレビュー & テキスト確認</h2>
+        <h2>③ プレビュー & テキスト確認</h2>
         <div id="imagePreview" style="margin-bottom: 12px; text-align: center;">
             <img id="previewImage" style="max-width: 100%; max-height: 200px; display: none;" alt="プレビュー画像">
         </div>
         <div id="preview"></div>
         <pre id="code"></pre>
-        <div class="hint">高さ8行・縦横比維持。点灯=1 / 消灯=0</div>
+        <div class="hint">点灯=1 / 消灯=0</div>
     </div>
 
+    <!-- ステップ 4: ファイル名を決める -->
     <div class="card">
-        <h2>③ ファイル名を決める</h2>
+        <h2>④ ファイル名を決める</h2>
         <div class="row">
             <input id="fname" type="text" placeholder="例: hello.txt" value="0000.txt" style="min-width:220px">
             <span class="hint">不正な文字は自動で置換されます</span>
         </div>
     </div>
 
-<!-- STEP 4: 送信 -->
-<div class="card">
-  <h2>④ 送信</h2>
-  <div class="hint" style="margin:6px 0 10px;">
-    ※ 送信前に、本体の <strong>NEXT</strong> と <strong>BACK</strong> を同時に押して
-    <strong>「WAIT」表示</strong>にしてください。
-  </div>
-  <div class="row">
-    <button class="btn primary" id="btnSend" disabled>送信（Enter）</button>
-    <button class="btn" id="btnReset">リセット</button>
-    <span class="status" id="status">Not connected</span>
-  </div>
-</div>
+    <!-- ステップ 5: 送信 -->
+    <div class="card">
+        <h2>⑤ 送信</h2>
+        <div class="hint" style="margin:6px 0 10px;">
+            ※ 送信前に、本体の <strong>NEXT</strong> と <strong>BACK</strong> を同時に押して
+            <strong>「WAIT」表示</strong>にしてください。
+        </div>
+        <div class="row">
+            <button class="btn primary" id="btnSend" disabled>送信（Enter）</button>
+            <button class="btn" id="btnReset">リセット</button>
+            <span class="status" id="status">Not connected</span>
+        </div>
+    </div>
 
+    <!-- ステップ 6: デバイス応答 -->
     <div class="card">
         <h2>デバイス応答</h2>
         <pre id="log"></pre>
@@ -85,6 +121,12 @@
 const $ = (id)=>document.getElementById(id);
 const setStatus = (s, cls='')=>{ const el=$('status'); el.textContent=s; el.className='status '+cls; };
 const log = (s)=>{ const el=$('log'); el.textContent += s; el.scrollTop = el.scrollHeight; };
+
+// テキスト確認欄（pre#code）をデータ未設定時に8行の空行でプレースホルダー表示
+function setCodePlaceholder(){
+  const lines = 8;
+  $('code').textContent = "\n".repeat(lines);
+}
 
 /* ---------- 入力（クリック/ドロップ） ---------- */
 $('pickBtn').addEventListener('click', ()=>$('file_input').click());
@@ -133,12 +175,14 @@ function convertImage(img, origName){
   for(let ty=0; ty<targetH; ty++){
     let line='';
     for(let tx=0; tx<targetW; tx++){
-      if(tx<offX || tx>=offX+fitW || ty<offY || ty>=offY+fitH){ line+='0'; continue; }
+      // 中心座標で内外判定（浮動小数の微小ズレで最上段が除外されるのを防止）
+      const cx = tx + 0.5, cy = ty + 0.5;
+      if(cx<=offX || cx>offX+fitW || cy<=offY || cy>offY+fitH){ line+='0'; continue; }
       const sx = Math.min(srcW-1, Math.max(0, Math.floor(((tx-offX)+0.5)/scale)));
       const sy = Math.min(srcH-1, Math.max(0, Math.floor(((ty-offY)+0.5)/scale)));
       const i = (sy*srcW+sx)*4;
       const r=src[i], g=src[i+1], b=src[i+2], a=src[i+3];
-      const threshold = 100; // RGBの合計がこの値以下なら「黒」と判定
+      const threshold = 512; // RGBの合計がこの値以下なら「黒」と判定
       const bit = Number((r + g + b <= threshold) && a > 1); // 黒=1
       line += bit ? '1' : '0';
     }
@@ -210,6 +254,9 @@ async function sendNow() {
 
   // 押下時にUIの表示を先にクリア（誤連打防止 / 結果が見やすい）
   const prevText = content;
+  setCodePlaceholder();
+  $('preview').innerHTML = '';
+  $('content').value = '';
   $('btnSend').disabled = true;
 
   let port = null,
@@ -286,5 +333,8 @@ async function sendNow() {
 $('btnReset').addEventListener('click', () => {
   location.reload();
 });
+
+// 初期表示時に空なら8行プレースホルダーを表示
+if(!$('code').textContent){ setCodePlaceholder(); }
 </script>
 </html>
