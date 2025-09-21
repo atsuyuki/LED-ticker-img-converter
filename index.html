@@ -42,6 +42,9 @@
 
     <div class="card">
         <h2>② プレビュー & テキスト確認</h2>
+        <div id="imagePreview" style="margin-bottom: 12px; text-align: center;">
+            <img id="previewImage" style="max-width: 100%; max-height: 200px; display: none;" alt="プレビュー画像">
+        </div>
         <div id="preview"></div>
         <pre id="code"></pre>
         <div class="hint">高さ8行・縦横比維持。点灯=1 / 消灯=0</div>
@@ -91,12 +94,24 @@ const drop = $('drop');
 drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files?.[0]; if(f) handleImageFile(f); });
 $('file_input').addEventListener('change', e=>{ const f=e.target.files?.[0]; if(f) handleImageFile(f); });
 
-function handleImageFile(file){
-  if(!file) return;
-  $('pickedHint').style.display='block';
-  $('pickedHint').textContent = `選択中: ${file.name} (${Math.round(file.size/1024)} KB)`;
+function handleImageFile(file) {
+  if (!file) return;
+  $('pickedHint').style.display = 'block';
+  $('pickedHint').textContent = `選択中: ${file.name} (${Math.round(file.size / 1024)} KB)`;
   const reader = new FileReader();
-  reader.onload = e => { const img = new Image(); img.onload = ()=>convertImage(img, file.name); img.src = e.target.result; };
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // 元の画像をプレビュー
+      const previewImage = $('previewImage');
+      previewImage.src = e.target.result;
+      previewImage.style.display = 'block';
+
+      // LED用の変換処理
+      convertImage(img, file.name);
+    };
+    img.src = e.target.result;
+  };
   reader.readAsDataURL(file);
 }
 
@@ -123,7 +138,8 @@ function convertImage(img, origName){
       const sy = Math.min(srcH-1, Math.max(0, Math.floor(((ty-offY)+0.5)/scale)));
       const i = (sy*srcW+sx)*4;
       const r=src[i], g=src[i+1], b=src[i+2], a=src[i+3];
-      const bit = Number(!(r>1 || g>1 || b>1) && a>1); // 黒=1
+      const threshold = 100; // RGBの合計がこの値以下なら「黒」と判定
+      const bit = Number((r + g + b <= threshold) && a > 1); // 黒=1
       line += bit ? '1' : '0';
     }
     rows.push(line);
@@ -144,10 +160,12 @@ $('fname').addEventListener('input', ()=>{ $('fname').dataset.userEdited='1'; })
 /* ---------- Utils ---------- */
 function base64FromBytes(bytes){ let bin=''; const CH=0x8000; for(let i=0;i<bytes.length;i+=CH) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); return btoa(bin); }
 function sanitizeFilename(name){
-  let n=(name||'').trim().replace(/[\\\/:*?"<>|]/g,'-');
-  if(n.startsWith('.')) n='0'+n;
-  if(!n) n='0000.txt';
-  if(!/\.[^.]+$/.test(n)) n+='.txt';
+  let n=(name||'').trim()
+    .replace(/[\\\/:*?"<>|]/g,'-') // 不正な文字をハイフンに置換
+    .replace(/\s+/g, '-');         // スペースをハイフンに置換
+  if(n.startsWith('.')) n='0'+n;   // ファイル名がドットで始まる場合の対応
+  if(!n) n='0000.txt';             // 空の場合のデフォルト名
+  if(!/\.[^.]+$/.test(n)) n+='.txt'; // 拡張子がない場合の対応
   return n;
 }
 const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
@@ -183,59 +201,84 @@ async function readDeviceResponse(reader, timeoutMs=10000){
 document.addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.metaKey && !e.ctrlKey && !$('btnSend').disabled){ e.preventDefault(); sendNow(); } });
 $('btnSend').addEventListener('click', sendNow);
 
-async function sendNow(){
+async function sendNow() {
   const content = $('content').value ?? '';
-  if(!content){ alert('データがありません。画像を選んで変換してください。'); return; }
+  if (!content) {
+    alert('データがありません。画像を選んで変換してください。');
+    return;
+  }
 
   // 押下時にUIの表示を先にクリア（誤連打防止 / 結果が見やすい）
   const prevText = content;
-  $('code').textContent = '';
-  $('preview').innerHTML = '';
-  $('content').value = '';
   $('btnSend').disabled = true;
 
-  let port=null, writer=null, reader=null;
-  try{
-    if(!('serial' in navigator)){ alert('このブラウザはWeb Serialに非対応です。'); return; }
+  let port = null,
+    writer = null,
+    reader = null;
+  try {
+    if (!('serial' in navigator)) {
+      alert('このブラウザはWeb Serialに非対応です。');
+      return;
+    }
     port = await navigator.serial.requestPort();
-    await port.open({ baudRate:115200 });
+    await port.open({ baudRate: 115200 });
     writer = port.writable.getWriter();
     reader = port.readable.getReader();
-    setStatus('Connected','ok');
+    setStatus('Connected', 'ok');
 
-    const path  = `imgs/${sanitizeFilename($('fname').value)}`;
+    const path = `imgs/${sanitizeFilename($('fname').value)}`;
     const bytes = new TextEncoder().encode(prevText);
-    const size  = bytes.length;
-    const b64   = base64FromBytes(bytes);
+    const size = bytes.length;
+    const b64 = base64FromBytes(bytes);
     const chunkLen = 240;
-    const lines=[]; for(let i=0;i<b64.length;i+=chunkLen) lines.push(b64.slice(i,i+chunkLen));
+    const lines = [];
+    for (let i = 0; i < b64.length; i += chunkLen) lines.push(b64.slice(i, i + chunkLen));
 
-    const writeLine = async (s)=>{ const data=new TextEncoder().encode(s+'\n'); await writer.write(data); };
+    const writeLine = async (s) => {
+      const data = new TextEncoder().encode(s + '\n');
+      await writer.write(data);
+    };
 
-    setStatus('Sending…','warn');
+    setStatus('Sending…', 'warn');
     await writeLine(`PUT ${path} ${size}`);
-    for(const ln of lines){ await writeLine(ln); await sleep(2); }
+    for (const ln of lines) {
+      await writeLine(ln);
+      await sleep(2);
+    }
     await writeLine('.');
-    setStatus('Sent. Waiting for OK…','warn');
+    setStatus('Sent. Waiting for OK…', 'warn');
 
     const result = await readDeviceResponse(reader, 8000);
     await sleep(100); // 余韻
 
-    if(result.status==='OK'){ setStatus('Uploaded (OK)','ok'); }
-    else if(result.status==='ERR'){ setStatus('Device ERR','err'); }
-    else { setStatus('No response (timeout)','err'); }
-
-  } catch(e){
+    if (result.status === 'OK') {
+      setStatus('Uploaded (OK)', 'ok');
+    } else if (result.status === 'ERR') {
+      setStatus('Device ERR', 'err');
+    } else {
+      setStatus('No response (timeout)', 'err');
+    }
+  } catch (e) {
     // 失敗したら元に戻して再送できるようにする
     $('code').textContent = prevText;
-    $('content').value   = prevText;
+    $('content').value = prevText;
     $('btnSend').disabled = false;
-    setStatus('Write/Conn error','err'); console.error(e);
+    setStatus('Write/Conn error', 'err');
+    console.error(e);
   } finally {
-    try{ if(writer) writer.releaseLock(); }catch{}
-    try{ if(reader){ await reader.cancel(); reader.releaseLock(); } }catch{}
-    try{ if(port) await port.close(); }catch{}
-    setStatus('Port closed','');
+    try {
+      if (writer) writer.releaseLock();
+    } catch {}
+    try {
+      if (reader) {
+        await reader.cancel();
+        reader.releaseLock();
+      }
+    } catch {}
+    try {
+      if (port) await port.close();
+    } catch {}
+    setStatus('Port closed', '');
   }
 }
 
