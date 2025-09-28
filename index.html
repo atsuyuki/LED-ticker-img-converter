@@ -31,7 +31,6 @@
     figure.sample .hint{ margin-top:6px; }
     /* 画像プレビュー領域: 背景を白、文字基準の高さ(lh)で8行ぶん */
     #imagePreview {
-      background:#ffffff;
       font-size: 8px;      /* #preview と揃える */
       line-height: .7em;   /* #preview と揃える */
       height: calc(8 * 1lh); /* 8行ぶんの高さ */
@@ -39,6 +38,7 @@
     }
     /* 画像は高さを枠いっぱい（8lh）に、幅はアスペクト維持で自動 */
     #previewImage {
+      background:#ffffff;
       height: 100% !important;
       width: auto !important;
       max-height: none !important;
@@ -96,12 +96,16 @@
     <div class="card">
         <h2>④ 送信 / ダウンロード</h2>
         <div class="hint" style="margin:6px 0 10px;">
-            ※ 送信前に、本体の <strong>NEXT</strong> と <strong>BACK</strong> を同時に押して
-            <strong>「WAIT」表示</strong>にしてください。
+            以下の手順でデータを送信してください：
+            <ol>
+                <li>本体の <strong>「NEXT」</strong> と <strong>「BACK」</strong> を同時に押して、<strong>「WAIT」表示</strong>にしてください。</li>
+                <li><strong>「デバイスに送信」</strong> を押し、「Board in FS mode」または「Board CDC」と書かれたポートを選択してください。</li>
+                <li>送信が成功すれば <strong>「OK」</strong> が表示されます。</li>
+            </ol>
         </div>
         <div class="row">
-            <button class="btn primary" id="btnSend" disabled>デバイスに送信</button>
-            <button class="btn" id="btnDownload" disabled>ダウンロード</button>
+            <button class="btn primary" id="btnSend" disabled><strong>デバイスに送信</strong></button>
+            <button class="btn" id="btnDownload" disabled><strong>ダウンロード</strong></button>
           </div>
         </div>
         
